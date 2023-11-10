@@ -2,6 +2,7 @@
 #include <cuda_runtime_api.h>
 #include <cusparse.h>
 #include <vector>
+#include <array>
 
 #define CHECK_CUDA(func)  {                                                \
   cudaError_t status = (func);                                             \
@@ -21,6 +22,56 @@
   }                                                                         \
 }
 
+
+struct MatrixData {
+    int num_matrices;
+    std::vector<int> num_rows, num_cols, nnz;
+    std::vector<std::array<int, 9>> h_rows, h_columns;
+    std::vector<std::array<float, 9>> h_values;
+    std::vector<std::array<float, 4>> hX, hY, hY_result;
+};
+
+MatrixData initialize_matrices() {
+    MatrixData data;
+    data.num_matrices = 3;
+    data.num_rows = {4, 4, 4};
+    data.num_cols = {4, 4, 4};
+    data.nnz = {9, 9, 9};
+    data.h_rows = {{
+        {0, 0, 0, 1, 2, 2, 2, 3, 3},
+        {0, 0, 0, 1, 2, 2, 2, 3, 3},
+        {0, 0, 0, 1, 2, 2, 2, 3, 3}
+    }};
+    data.h_columns = {{
+        {0, 2, 3, 1, 0, 2, 3, 1, 3},
+        {0, 2, 3, 1, 0, 2, 3, 1, 3},
+        {0, 2, 3, 1, 0, 2, 3, 1, 3}
+    }};
+    data.h_values = {{
+        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f},
+        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f},
+        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}
+    }};
+    data.hX = {{
+        {1.0f, 2.0f, 3.0f, 4.0f},
+        {1.0f, 2.0f, 3.0f, 4.0f},
+        {1.0f, 2.0f, 3.0f, 4.0f}
+    }};
+    data.hY = {{
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 0.0f}
+    }};
+    data.hY_result = {{
+        {19.0f, 8.0f, 51.0f, 52.0f},
+        {19.0f, 8.0f, 51.0f, 52.0f},
+        {19.0f, 8.0f, 51.0f, 52.0f}
+    }};
+
+    return data;
+}
+
+
 int main(void) {
   // Define your problem and inputs (matrix and vectors) here.
 
@@ -28,34 +79,18 @@ int main(void) {
   float alpha = 1.0f;
   float beta = 0.0f;
 
-  // Matrix definition
-  const int num_matrices = 3;
-  int num_rows[num_matrices] = {4, 4, 4};
-  int num_cols[num_matrices] = {4, 4, 4};
-  int nnz[num_matrices] = {9, 9, 9};
-  // Same sparse structure for all three matrices for simplicity
-  int h_rows[num_matrices][9] = {{0, 0, 0, 1, 2, 2, 2, 3, 3},
-                                 {0, 0, 0, 1, 2, 2, 2, 3, 3},
-                                 {0, 0, 0, 1, 2, 2, 2, 3, 3}};
-  int h_columns[num_matrices][9] = {{0, 2, 3, 1, 0, 2, 3, 1, 3},
-                                    {0, 2, 3, 1, 0, 2, 3, 1, 3},
-                                    {0, 2, 3, 1, 0, 2, 3, 1, 3}};
-  float h_values[num_matrices][9] = {{1.0f, 2.0f, 3.0f, 4.0f, 5.0f,
-                                      6.0f, 7.0f, 8.0f, 9.0f},
-                                     {1.0f, 2.0f, 3.0f, 4.0f, 5.0f,
-                                      6.0f, 7.0f, 8.0f, 9.0f},
-                                     {1.0f, 2.0f, 3.0f, 4.0f, 5.0f,
-                                      6.0f, 7.0f, 8.0f, 9.0f}};
-  float hX[num_matrices][4] = {{1.0f, 2.0f, 3.0f, 4.0f},
-                               {1.0f, 2.0f, 3.0f, 4.0f},
-                               {1.0f, 2.0f, 3.0f, 4.0f}};
-  float hY[num_matrices][4] = {{0.0f, 0.0f, 0.0f, 0.0f},
-                               {0.0f, 0.0f, 0.0f, 0.0f},
-                               {0.0f, 0.0f, 0.0f, 0.0f}};
+  MatrixData data = initialize_matrices();
 
-  float hY_result[num_matrices][4] = {{19.0f, 8.0f, 51.0f, 52.0f },
-                               {19.0f, 8.0f, 51.0f, 52.0f },
-                               {19.0f, 8.0f, 51.0f, 52.0f }};
+  auto num_matrices = data.num_matrices;
+  auto num_rows = data.num_rows;
+  auto num_cols = data.num_cols;
+  auto nnz = data.nnz;
+  auto h_rows = data.h_rows;
+  auto h_columns = data.h_columns;
+  auto h_values = data.h_values;
+  auto hX = data.hX;
+  auto hY = data.hY;
+  auto hY_result = data.hY_result;
 
 
 // Define device arrays/vectors to hold matrices and vector data
@@ -71,26 +106,29 @@ std::vector<cusparseDnVecDescr_t> vecY(num_matrices);
 
 std::vector<void*> dBuffers(num_matrices);
 std::vector<size_t> bufferSize(num_matrices);
+
+// Allocate device memory for each matrix and vector
+for (auto i = 0; i < num_matrices; i++) {
+    CHECK_CUDA(cudaMalloc((void**) &dA_rows[i], nnz[i] * sizeof(int)))
+    CHECK_CUDA(cudaMalloc((void**) &dA_columns[i], nnz[i] * sizeof(int)))
+    CHECK_CUDA(cudaMalloc((void**) &dA_values[i], nnz[i] * sizeof(float)))
+    CHECK_CUDA(cudaMalloc((void**) &dX[i], num_cols[i] * sizeof(float)))
+    CHECK_CUDA(cudaMalloc((void**) &dY[i], num_rows[i] * sizeof(float)))
+    CHECK_CUDA(cudaMalloc(&dBuffers[i], bufferSize[i]) )
+}
+
 for (int i = 0; i < num_matrices; i++) {
 
     cudaStreamCreate(&streams[i]);
     cusparseCreate(&handles[i]);
     cusparseSetStream(handles[i], streams[i]);
 
-    // Allocate device memory for each matrix and vector
-    CHECK_CUDA(cudaMalloc((void**) &dA_rows[i], nnz[i] * sizeof(int)))
-    CHECK_CUDA(cudaMalloc((void**) &dA_columns[i], nnz[i] * sizeof(int)))
-    CHECK_CUDA(cudaMalloc((void**) &dA_values[i], nnz[i] * sizeof(float)))
-    CHECK_CUDA(cudaMalloc((void**) &dX[i], num_cols[i] * sizeof(float)))
-    CHECK_CUDA(cudaMalloc((void**) &dY[i], num_rows[i] * sizeof(float)))
-
-    // Copy matrices and vectors from host to device
-    // I think this can be done asynchronously Keep it for now
-    CHECK_CUDA(cudaMemcpy(dA_rows[i], h_rows[i], nnz[i] * sizeof(int), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(dA_columns[i], h_columns[i], nnz[i] * sizeof(int), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(dA_values[i], h_values[i], nnz[i] * sizeof(float), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(dX[i], hX[i], num_cols[i] * sizeof(float), cudaMemcpyHostToDevice))
-    CHECK_CUDA(cudaMemcpy(dY[i], hY[i], num_rows[i] * sizeof(float), cudaMemcpyHostToDevice))
+// Copy matrices and vectors from host to device asynchronously
+    CHECK_CUDA(cudaMemcpyAsync(dA_rows[i], h_rows[i].data(), nnz[i] * sizeof(int), cudaMemcpyHostToDevice, streams[i]))
+    CHECK_CUDA(cudaMemcpyAsync(dA_columns[i], h_columns[i].data(), nnz[i] * sizeof(int), cudaMemcpyHostToDevice, streams[i]))
+    CHECK_CUDA(cudaMemcpyAsync(dA_values[i], h_values[i].data(), nnz[i] * sizeof(float), cudaMemcpyHostToDevice, streams[i]))
+    CHECK_CUDA(cudaMemcpyAsync(dX[i], hX[i].data(), num_cols[i] * sizeof(float), cudaMemcpyHostToDevice, streams[i]))
+    CHECK_CUDA(cudaMemcpyAsync(dY[i], hY[i].data(), num_rows[i] * sizeof(float), cudaMemcpyHostToDevice, streams[i]))
 
     // Create sparse matrix A in CSR format
     CHECK_CUSPARSE( cusparseCreateCoo(&matA[i], num_rows[i], num_cols[i], nnz[i],
@@ -110,7 +148,6 @@ for (int i = 0; i < num_matrices; i++) {
                                     &alpha, matA[i], vecX[i], &beta, vecY[i], CUDA_R_32F,
                                     CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize[i]) )
 
-    CHECK_CUDA( cudaMalloc(&dBuffers[i], bufferSize[i]) )
 
     CHECK_CUSPARSE( cusparseSpMV(
                                     handles[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -122,7 +159,7 @@ for (int i = 0; i < num_matrices; i++) {
     CHECK_CUSPARSE( cusparseDestroyDnVec(vecX[i]) )
     CHECK_CUSPARSE( cusparseDestroyDnVec(vecY[i]) )
 
-    CHECK_CUDA(cudaMemcpy(hY[i], dY[i], num_rows[i] * sizeof(float), cudaMemcpyDeviceToHost))
+    CHECK_CUDA(cudaMemcpyAsync(hY[i].data(), dY[i], num_rows[i] * sizeof(float), cudaMemcpyDeviceToHost, streams[i]))
 }
 
 
