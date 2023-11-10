@@ -111,11 +111,6 @@ for (int i = 0; i < num_matrices; i++) {
                                     CUSPARSE_SPMV_ALG_DEFAULT, &bufferSize[i]) )
 
     CHECK_CUDA( cudaMalloc(&dBuffers[i], bufferSize[i]) )
-}
-
-
-
-  for (int i = 0; i < num_matrices; i++) {
 
     CHECK_CUSPARSE( cusparseSpMV(
                                     handles[i], CUSPARSE_OPERATION_NON_TRANSPOSE,
@@ -127,12 +122,9 @@ for (int i = 0; i < num_matrices; i++) {
     CHECK_CUSPARSE( cusparseDestroyDnVec(vecX[i]) )
     CHECK_CUSPARSE( cusparseDestroyDnVec(vecY[i]) )
 
-  }
-
-  // Copy the results back from the device
-  for (int i = 0; i < num_matrices; i++) {
     CHECK_CUDA(cudaMemcpy(hY[i], dY[i], num_rows[i] * sizeof(float), cudaMemcpyDeviceToHost))
-  }
+}
+
 
   // Synchronize each stream
   for (auto &stream : streams) {
@@ -162,9 +154,6 @@ for (int i = 0; i < num_matrices; i++) {
   for(auto &stream : streams) {
     cudaStreamDestroy(stream);
   }
-
-  // Copy the results back from the device
-  // Place your codes here
 
   return 0;
 }
