@@ -22,55 +22,35 @@
   }                                                                         \
 }
 
-
 struct MatrixData {
     int num_matrices;
     std::vector<int> num_rows, num_cols, nnz;
-    std::vector<std::array<int, 9>> h_rows, h_columns;
-    std::vector<std::array<float, 9>> h_values;
-    std::vector<std::array<float, 4>> hX, hY, hY_result;
+    std::vector<std::vector<int>> h_rows, h_columns;
+    std::vector<std::vector<float>> h_values, hX, hY, hY_result;
 };
 
-MatrixData initialize_matrices() {
+MatrixData generate_identical_matrices(int num_matrices) {
     MatrixData data;
-    data.num_matrices = 3;
-    data.num_rows = {4, 4, 4};
-    data.num_cols = {4, 4, 4};
-    data.nnz = {9, 9, 9};
-    data.h_rows = {{
-        {0, 0, 0, 1, 2, 2, 2, 3, 3},
-        {0, 0, 0, 1, 2, 2, 2, 3, 3},
-        {0, 0, 0, 1, 2, 2, 2, 3, 3}
-    }};
-    data.h_columns = {{
-        {0, 2, 3, 1, 0, 2, 3, 1, 3},
-        {0, 2, 3, 1, 0, 2, 3, 1, 3},
-        {0, 2, 3, 1, 0, 2, 3, 1, 3}
-    }};
-    data.h_values = {{
-        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f},
-        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f},
-        {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}
-    }};
-    data.hX = {{
-        {1.0f, 2.0f, 3.0f, 4.0f},
-        {1.0f, 2.0f, 3.0f, 4.0f},
-        {1.0f, 2.0f, 3.0f, 4.0f}
-    }};
-    data.hY = {{
-        {0.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0f, 0.0f, 0.0f}
-    }};
-    data.hY_result = {{
-        {19.0f, 8.0f, 51.0f, 52.0f},
-        {19.0f, 8.0f, 51.0f, 52.0f},
-        {19.0f, 8.0f, 51.0f, 52.0f}
-    }};
+    data.num_matrices = num_matrices;
+    data.num_rows = std::vector<int>(num_matrices, 4);
+    data.num_cols = std::vector<int>(num_matrices, 4);
+    data.nnz = std::vector<int>(num_matrices, 9);
 
+    std::vector<int> sample_rows = {0, 0, 0, 1, 2, 2, 2, 3, 3};
+    std::vector<int> sample_cols = {0, 2, 3, 1, 0, 2, 3, 1, 3};
+    std::vector<float> sample_vals = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f};
+    std::vector<float> sample_vec = {1.0f, 2.0f, 3.0f, 4.0f};
+
+    for (int i = 0; i < num_matrices; i++) {
+        data.h_rows.push_back(sample_rows);
+        data.h_columns.push_back(sample_cols);
+        data.h_values.push_back(sample_vals);
+        data.hX.push_back(sample_vec);
+        data.hY.push_back(std::vector<float>(4, 0.0f));
+        data.hY_result.push_back({19.0f, 8.0f, 51.0f, 52.0f}); // comme before
+    }
     return data;
 }
-
 
 int main(void) {
   // Define your problem and inputs (matrix and vectors) here.
@@ -79,9 +59,9 @@ int main(void) {
   float alpha = 1.0f;
   float beta = 0.0f;
 
-  MatrixData data = initialize_matrices();
+  auto num_matrices = 5; // use whatever number you want
+  MatrixData data = generate_identical_matrices(num_matrices);
 
-  auto num_matrices = data.num_matrices;
   auto num_rows = data.num_rows;
   auto num_cols = data.num_cols;
   auto nnz = data.nnz;
